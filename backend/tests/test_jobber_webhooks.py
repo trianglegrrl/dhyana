@@ -12,7 +12,7 @@ class TestJobberWebhooks(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.app = create_app(testing=True)
+        self.app = create_app('testing')
         self.client = self.app.test_client()
         self.app_context = self.app.app_context()
         self.app_context.push()
@@ -44,7 +44,7 @@ class TestJobberWebhooks(unittest.TestCase):
         signature = self._generate_signature(payload)
 
         return self.client.post(
-            '/jobber/webhooks',
+            '/webhooks/jobber/webhooks',
             data=payload,
             content_type='application/json',
             headers={'X-Jobber-Signature': f'sha256={signature}'}
@@ -61,7 +61,7 @@ class TestJobberWebhooks(unittest.TestCase):
         payload = json.dumps({"topic": "CLIENT_CREATE", "itemId": "test_id"})
 
         response = self.client.post(
-            '/jobber/webhooks',
+            '/webhooks/jobber/webhooks',
             data=payload,
             content_type='application/json',
             headers={'X-Jobber-Signature': 'invalid_signature'}
@@ -74,7 +74,7 @@ class TestJobberWebhooks(unittest.TestCase):
         payload = json.dumps({"topic": "CLIENT_CREATE", "itemId": "test_id"})
 
         response = self.client.post(
-            '/jobber/webhooks',
+            '/webhooks/jobber/webhooks',
             data=payload,
             content_type='application/json'
         )
@@ -168,7 +168,7 @@ class TestJobberWebhooks(unittest.TestCase):
         signature = self._generate_signature(payload)
 
         response = self.client.post(
-            '/jobber/webhooks',
+            '/webhooks/jobber/webhooks',
             data=payload,
             content_type='application/json',
             headers={'X-Jobber-Signature': f'sha256={signature}'}
@@ -178,10 +178,13 @@ class TestJobberWebhooks(unittest.TestCase):
 
     def test_webhook_missing_json_body(self):
         """Test webhook request without JSON body"""
+        # Generate a valid signature for empty body
+        signature = self._generate_signature("")
+
         response = self.client.post(
-            '/jobber/webhooks',
+            '/webhooks/jobber/webhooks',
             content_type='application/json',
-            headers={'X-Jobber-Signature': 'test'}
+            headers={'X-Jobber-Signature': f'sha256={signature}'}
         )
 
         self.assertEqual(response.status_code, 400)
@@ -205,7 +208,7 @@ class TestJobberModelsUpsert(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures"""
-        self.app = create_app(testing=True)
+        self.app = create_app('testing')
         self.app_context = self.app.app_context()
         self.app_context.push()
 
@@ -213,7 +216,7 @@ class TestJobberModelsUpsert(unittest.TestCase):
         """Clean up after tests"""
         self.app_context.pop()
 
-    @patch('models.jobber_models.db')
+    @patch('app.db')
     def test_jobber_client_upsert_create(self, mock_db):
         """Test JobberClient.upsert creates new client"""
         # Mock query to return None (client doesn't exist)
@@ -232,7 +235,7 @@ class TestJobberModelsUpsert(unittest.TestCase):
         mock_db.session.add.assert_called_once()
         mock_db.session.commit.assert_called_once()
 
-    @patch('models.jobber_models.db')
+    @patch('app.db')
     def test_jobber_client_upsert_update(self, mock_db):
         """Test JobberClient.upsert updates existing client"""
         # Mock existing client
