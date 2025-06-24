@@ -33,6 +33,12 @@ This directory contains comprehensive development rules and guidelines for the D
 - Authentication and authorization
 - Pagination and filtering standards
 
+### 🧪 [Testing Practices](mdc:.cursor/rules/testing-practices.mdc)
+- Testing framework setup and configuration
+- Test writing standards and patterns
+- Running tests locally and in Docker
+- Continuous testing best practices
+
 ## Quick Reference
 
 ### Key Files
@@ -40,6 +46,7 @@ This directory contains comprehensive development rules and guidelines for the D
 - Configuration: [backend/config.py](mdc:backend/config.py)
 - Frontend entry: [frontend/src/App.jsx](mdc:frontend/src/App.jsx)
 - Docker orchestration: [docker-compose.yml](mdc:docker-compose.yml)
+- Test configuration: [backend/conftest.py](mdc:backend/conftest.py)
 
 ### Development Commands
 ```bash
@@ -48,6 +55,11 @@ docker-compose --profile dev up -d
 
 # Start production environment
 docker-compose --profile prod up -d
+
+# Run tests (ONLY in Docker - never locally)
+docker-compose exec backend pytest
+docker-compose exec backend pytest -v  # verbose output
+docker-compose exec backend pytest backend/tests/test_slack_webhooks.py  # specific test file
 
 # View logs
 docker-compose logs -f [service-name]
@@ -58,7 +70,8 @@ docker-compose down
 
 ### Service Ports
 - Frontend (dev): http://localhost:5173
-- Backend API: http://localhost:8000
+- Frontend (prod): http://localhost (nginx)
+- Backend API: http://localhost:5000
 - Database: localhost:5432
 - Redis: localhost:6379
 
@@ -67,20 +80,15 @@ docker-compose down
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   React (Vite)  │    │  Flask Backend  │    │   PostgreSQL    │
-│   Port: 5173    │────│   Port: 8000    │────│   Port: 5432    │
+│   Port: 5173    │────│   Port: 5000    │────│   Port: 5432    │
 │   TailwindCSS   │    │   SQLAlchemy    │    │   Database      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                                 │
                        ┌─────────────────┐
                        │      Redis      │
                        │   Port: 6379    │
-                       │ Sessions/Tasks  │
+                       │ Sessions/Cache  │
                        └─────────────────┘
-                                │
-                    ┌──────────────────────────┐
-                    │    Celery Workers        │
-                    │  Background Processing   │
-                    └──────────────────────────┘
 ```
 
 ## Getting Started
@@ -89,11 +97,13 @@ docker-compose down
    - Follow the [Development Workflow](mdc:.cursor/rules/development-workflow.mdc) guide
    - Review [Coding Standards](mdc:.cursor/rules/coding-standards.mdc) before making changes
    - Understand the [Project Structure](mdc:.cursor/rules/project-structure.mdc)
+   - Read [Testing Practices](mdc:.cursor/rules/testing-practices.mdc) for test development
 
 2. **API Development**
    - Follow [API Conventions](mdc:.cursor/rules/api-conventions.mdc) for consistent design
    - Use existing patterns from [backend/routes/api.py](mdc:backend/routes/api.py)
    - Implement proper error handling and validation
+   - Write comprehensive tests for all endpoints
 
 3. **Frontend Development**
    - Use React functional components with hooks
@@ -102,28 +112,44 @@ docker-compose down
 
 ## Integration Points
 
-### Slack Integration
+### Slack Integration ✅ Production Ready
 - OAuth authentication flows
-- Webhook handling for real-time events
+- Webhook handling for real-time events (events, interactions, commands)
 - Slack SDK for API interactions
+- Comprehensive signature verification
+- 28 passing tests covering all webhook scenarios
 
 ### Jobber Integration
 - API authentication and data sync
 - Client, job, and invoice management
-- Background processing for data updates
+- Webhook processing for real-time updates
+- Comprehensive test coverage
 
-### Background Processing
-- Celery workers for async tasks
-- Redis as message broker
-- Scheduled tasks with Celery Beat
+### Testing Infrastructure
+- Pytest framework with comprehensive fixtures
+- Mock-based testing for external APIs
+- Signature verification testing
+- Database transaction testing
+- Docker-based test execution
 
 ## Contributing
 
 When making changes:
 1. Follow the established patterns in existing code
-2. Update tests for new functionality
-3. Ensure Docker containers build successfully
-4. Test in both development and production profiles
-5. Update documentation as needed
+2. Write tests for new functionality following [Testing Practices](mdc:.cursor/rules/testing-practices.mdc)
+3. Ensure all tests pass: `docker-compose exec backend pytest`
+4. Ensure Docker containers build successfully
+5. Test in both development and production profiles
+6. Update documentation as needed
+
+## Current Status
+
+- ✅ Backend API framework complete
+- ✅ Slack integration fully implemented with comprehensive testing
+- ✅ Database models and migrations
+- ✅ Docker containerization with dev/prod profiles
+- ✅ Testing infrastructure with 28+ passing tests
+- 🔄 Jobber integration (in progress)
+- 🔄 Frontend development (in progress)
 
 These rules are designed to maintain consistency, improve code quality, and accelerate development workflows across the team.

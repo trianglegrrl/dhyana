@@ -1,0 +1,249 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Testing Practices & Standards
+
+This document outlines testing standards, practices, and procedures for the Dhyana Test project.
+
+## 🎯 Testing Philosophy
+
+### Test-Driven Development (TDD)
+- Write tests first when implementing new features
+- Ensure every bug fix includes a test to prevent regression
+- Maintain high test coverage while focusing on meaningful tests
+- Use tests as documentation for expected behavior
+
+### Testing Pyramid
+```
+    ┌─────────────────┐
+    │   E2E Tests     │  ← Few, high-level integration tests
+    │   (Cypress)     │
+    ├─────────────────┤
+    │ Integration     │  ← API endpoint tests, webhook tests
+    │    Tests        │
+    ├─────────────────┤
+    │   Unit Tests    │  ← Many, fast, isolated function tests
+    │                 │
+    └─────────────────┘
+```
+
+## 🏗️ Test Framework Setup
+
+### Backend Testing Stack
+- **pytest**: Primary testing framework
+- **pytest-mock**: Mocking capabilities
+- **pytest-flask**: Flask-specific testing utilities
+- **factory-boy**: Test data factories
+- **coverage**: Code coverage analysis
+
+### Key Configuration Files
+- `backend/conftest.py`: Shared fixtures and test configuration
+- `backend/pytest.ini`: Pytest configuration (if exists)
+- `backend/requirements.txt`: Testing dependencies
+
+## 🚀 Running Tests
+
+> **⚠️ CRITICAL: Tests must ONLY be run inside Docker containers**
+>
+> This project follows a strict containerized development approach. All tests must be executed within Docker to ensure:
+> - Consistent environment across all developers and CI/CD
+> - Proper database and Redis connections
+> - Accurate dependency management
+> - Reproducible test results
+
+### Docker Test Commands (REQUIRED)
+
+```bash
+# Run all tests (primary command)
+docker-compose exec backend pytest
+
+# Run with verbose output
+docker-compose exec backend pytest -v
+
+# Run specific test file
+docker-compose exec backend pytest backend/tests/test_slack_webhooks.py
+
+# Run specific test class
+docker-compose exec backend pytest backend/tests/test_slack_webhooks.py::TestSlackWebhookSecurity
+
+# Run specific test method
+docker-compose exec backend pytest backend/tests/test_slack_webhooks.py::TestSlackWebhookSecurity::test_events_webhook_signature_verification_valid
+
+# Run tests with coverage
+docker-compose exec backend pytest --cov=. --cov-report=html
+
+# Run tests matching pattern
+docker-compose exec backend pytest -k "signature_verification"
+
+# Run tests and stop on first failure
+docker-compose exec backend pytest -x
+
+# Run tests in parallel (if pytest-xdist installed)
+docker-compose exec backend pytest -n auto
+```
+
+### ❌ DO NOT Run Tests Locally
+
+```bash
+# ❌ NEVER do this - tests will fail without proper Docker environment
+pytest
+python -m pytest
+```
+
+**Why Docker-only testing?**
+- Tests require PostgreSQL and Redis services that are configured in docker-compose
+- Environment variables are properly set within the container
+- Dependencies are locked to specific versions in the container
+- Database migrations and fixtures are designed for the containerized environment
+
+### Common Debugging Techniques
+
+> **Note**: All debugging commands must be run inside Docker containers
+
+```bash
+# Run tests with detailed output
+docker-compose exec backend pytest -vvv
+
+# Run tests with pdb debugger
+docker-compose exec backend pytest --pdb
+
+# Run only failed tests from last run
+docker-compose exec backend pytest --lf
+
+# Run specific test with print statements
+docker-compose exec backend pytest -s backend/tests/test_specific.py::test_method
+
+# Enter the container for interactive debugging
+docker-compose exec backend bash
+```
+
+## 📋 Test Organization
+
+### Directory Structure
+```
+backend/tests/
+├── conftest.py           # Shared fixtures and configuration
+├── test_slack_webhooks.py # Slack webhook integration tests (28+ tests)
+├── test_slack_client.py   # Slack API client tests
+├── test_jobber_webhooks.py # Jobber webhook integration tests
+├── test_api_endpoints.py  # API endpoint tests (future)
+└── fixtures/              # Test data files (if needed)
+```
+
+### Test File Naming Conventions
+- Test files: `test_*.py`
+- Test classes: `Test*` (e.g., `TestSlackWebhooks`)
+- Test methods: `test_*` (e.g., `test_signature_verification`)
+
+## ✍️ Writing Tests
+
+### Test Method Structure (AAA Pattern)
+
+```python
+def test_webhook_signature_verification_valid(self, client, app_context,
+                                             slack_message_event, slack_signature_headers):
+    """Test that valid Slack signatures are accepted"""
+    # Arrange
+    body = json.dumps(slack_message_event)
+    headers = slack_signature_headers(body)
+
+    # Act
+    with patch('routes.webhooks.handle_slack_message'):
+        response = client.post('/webhooks/slack/events', data=body, headers=headers)
+
+    # Assert
+    assert response.status_code == 200
+```
+
+### Test Naming Standards
+
+```python
+# Good test names - descriptive and specific
+def test_slack_signature_verification_with_valid_signature_returns_200()
+def test_jobber_webhook_with_missing_signature_returns_401()
+def test_handle_slack_message_creates_new_user_and_channel()
+
+# Avoid vague names
+def test_webhook()
+def test_signature()
+def test_success()
+```
+
+## 🔧 Test Configuration
+
+### Docker Environment Setup
+
+Ensure your `docker-compose.yml` includes test-specific environment variables:
+
+```yaml
+services:
+  backend:
+    environment:
+      - FLASK_ENV=testing
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/test_db
+      - REDIS_URL=redis://redis:6379/1
+```
+
+### Coverage Requirements
+
+- Minimum coverage threshold: 85%
+- All new features must have tests
+- Critical paths (webhooks, security) must have 95%+ coverage
+
+## 🚦 Test Categories
+
+### Unit Tests
+- Test individual functions and methods in isolation
+- Use mocks for external dependencies
+- Fast execution (< 1ms per test)
+
+### Integration Tests
+- Test API endpoints end-to-end
+- Test webhook processing workflows
+- Test database operations
+- Medium execution time (< 100ms per test)
+
+### Contract Tests
+- Verify Slack API integration contracts
+- Verify Jobber API integration contracts
+- Test webhook payload structures
+
+## 🔒 Security Testing
+
+### Webhook Security Tests
+- Signature verification (Slack & Jobber)
+- Request validation
+- Rate limiting
+- Authentication/authorization
+
+### Example Security Test
+```python
+def test_slack_webhook_rejects_invalid_signature(self, client):
+    """Ensure webhook rejects requests with invalid signatures"""
+    body = json.dumps({'test': 'data'})
+    headers = {'X-Slack-Signature': 'invalid_signature'}
+
+    response = client.post('/webhooks/slack/events', data=body, headers=headers)
+
+    assert response.status_code == 401
+    assert 'Invalid signature' in response.get_json()['error']
+```
+
+## 🎯 Current Test Status
+
+As of the latest update, the project includes:
+- ✅ 28+ passing Slack webhook tests
+- ✅ Comprehensive signature verification tests
+- ✅ Error handling and edge case coverage
+- ✅ Mock-based external API testing
+- 🚧 Jobber webhook tests (in development)
+- 🚧 End-to-end API tests (planned)
+
+## 📚 Additional Resources
+
+- [Docker Best Practices for Python](https://testdriven.io/blog/docker-best-practices/)
+- [pytest Documentation](https://docs.pytest.org/)
+- [Flask Testing Guide](https://flask.palletsprojects.com/en/2.3.x/testing/)
+- [Docker Testing Strategies](https://medium.com/@beekashkarki/running-python-scripts-with-test-cases-in-docker-a-step-by-step-guide-c9129e01a478)
