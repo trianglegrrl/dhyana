@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, Numeric, JSON
+from sqlalchemy import Column, String, Text, Boolean, DateTime, ForeignKey, Numeric, JSON, Index
 from sqlalchemy.orm import relationship
 from .base_models import BaseModel
 
@@ -28,6 +28,33 @@ class JobberClient(BaseModel):
     # Relationships
     jobs = relationship('JobberJob', back_populates='client', cascade='all, delete-orphan')
     invoices = relationship('JobberInvoice', back_populates='client', cascade='all, delete-orphan')
+
+    # Database indexes for webhook performance
+    __table_args__ = (
+        Index('ix_jobber_clients_jobber_client_id', 'jobber_client_id'),
+        Index('ix_jobber_clients_email', 'email'),
+        Index('ix_jobber_clients_company_name', 'company_name'),
+    )
+
+    @classmethod
+    def upsert(cls, jobber_client_id, **kwargs):
+        """Create or update a client based on jobber_client_id"""
+        from app import db
+
+        client = cls.query.filter_by(jobber_client_id=jobber_client_id).first()
+
+        if client:
+            # Update existing client
+            for key, value in kwargs.items():
+                if hasattr(client, key):
+                    setattr(client, key, value)
+        else:
+            # Create new client
+            client = cls(jobber_client_id=jobber_client_id, **kwargs)
+            db.session.add(client)
+
+        db.session.commit()
+        return client
 
 class JobberJob(BaseModel):
     """Jobber job model"""
@@ -65,6 +92,34 @@ class JobberJob(BaseModel):
     client = relationship('JobberClient', back_populates='jobs')
     invoices = relationship('JobberInvoice', back_populates='job', cascade='all, delete-orphan')
 
+    # Database indexes for webhook performance
+    __table_args__ = (
+        Index('ix_jobber_jobs_jobber_job_id', 'jobber_job_id'),
+        Index('ix_jobber_jobs_client_id', 'client_id'),
+        Index('ix_jobber_jobs_status', 'status'),
+        Index('ix_jobber_jobs_start_date', 'start_date'),
+    )
+
+    @classmethod
+    def upsert(cls, jobber_job_id, **kwargs):
+        """Create or update a job based on jobber_job_id"""
+        from app import db
+
+        job = cls.query.filter_by(jobber_job_id=jobber_job_id).first()
+
+        if job:
+            # Update existing job
+            for key, value in kwargs.items():
+                if hasattr(job, key):
+                    setattr(job, key, value)
+        else:
+            # Create new job
+            job = cls(jobber_job_id=jobber_job_id, **kwargs)
+            db.session.add(job)
+
+        db.session.commit()
+        return job
+
 class JobberInvoice(BaseModel):
     """Jobber invoice model"""
     __tablename__ = 'jobber_invoices'
@@ -100,3 +155,32 @@ class JobberInvoice(BaseModel):
     # Relationships
     client = relationship('JobberClient', back_populates='invoices')
     job = relationship('JobberJob', back_populates='invoices')
+
+    # Database indexes for webhook performance
+    __table_args__ = (
+        Index('ix_jobber_invoices_jobber_invoice_id', 'jobber_invoice_id'),
+        Index('ix_jobber_invoices_client_id', 'client_id'),
+        Index('ix_jobber_invoices_job_id', 'job_id'),
+        Index('ix_jobber_invoices_status', 'status'),
+        Index('ix_jobber_invoices_due_date', 'due_date'),
+    )
+
+    @classmethod
+    def upsert(cls, jobber_invoice_id, **kwargs):
+        """Create or update an invoice based on jobber_invoice_id"""
+        from app import db
+
+        invoice = cls.query.filter_by(jobber_invoice_id=jobber_invoice_id).first()
+
+        if invoice:
+            # Update existing invoice
+            for key, value in kwargs.items():
+                if hasattr(invoice, key):
+                    setattr(invoice, key, value)
+        else:
+            # Create new invoice
+            invoice = cls(jobber_invoice_id=jobber_invoice_id, **kwargs)
+            db.session.add(invoice)
+
+        db.session.commit()
+        return invoice

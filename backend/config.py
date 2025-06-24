@@ -23,6 +23,7 @@ class Config:
     # Jobber configuration
     JOBBER_API_KEY = os.environ.get('JOBBER_API_KEY')
     JOBBER_API_SECRET = os.environ.get('JOBBER_API_SECRET')
+    JOBBER_WEBHOOK_SECRET = os.environ.get('JOBBER_WEBHOOK_SECRET')
     JOBBER_BASE_URL = 'https://api.getjobber.com'
 
     # Celery configuration
