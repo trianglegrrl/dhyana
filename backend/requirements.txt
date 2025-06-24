@@ -1,0 +1,33 @@
+# Flask Framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.0.5
+
+# Database
+psycopg2-binary==2.9.9
+SQLAlchemy==2.0.23
+
+# Redis & Sessions
+redis==5.0.1
+Flask-Session==0.5.0
+
+# API & HTTP
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Background Tasks
+celery==5.3.4
+
+# Production Server
+gunicorn==21.2.0
+
+# Slack SDK
+slack-sdk==3.26.1
+
+# Validation & Serialization
+marshmallow==3.20.2
+flask-marshmallow==0.15.0
+
+# Utilities
+python-dateutil==2.8.2
