@@ -3,3 +3,55 @@ description:
 globs:
 alwaysApply: false
 ---
+# Dhyana Test - Project Structure Guide
+
+## Overview
+This is a full-stack Slack-Jobber integration application with Python Flask backend, React frontend, and Docker containerization.
+
+## Architecture
+
+### Backend (Flask + SQLAlchemy)
+- **Entry Point**: [backend/app.py](mdc:backend/app.py) - Flask application factory pattern
+- **Configuration**: [backend/config.py](mdc:backend/config.py) - Environment-specific configs
+- **Dependencies**: [backend/requirements.txt](mdc:backend/requirements.txt) - Python packages
+
+#### Models Structure
+- **Base Model**: [backend/models/base_models.py](mdc:backend/models/base_models.py) - Common fields and methods
+- **Slack Models**: [backend/models/slack_models.py](mdc:backend/models/slack_models.py) - Slack team, user, channel models
+- **Jobber Models**: [backend/models/jobber_models.py](mdc:backend/models/jobber_models.py) - Jobber client, job, invoice models
+
+#### Routes Structure
+- **API Routes**: [backend/routes/api.py](mdc:backend/routes/api.py) - RESTful API endpoints
+- **Authentication**: [backend/routes/auth.py](mdc:backend/routes/auth.py) - OAuth and session management
+- **Webhooks**: [backend/routes/webhooks.py](mdc:backend/routes/webhooks.py) - Slack and Jobber webhook handlers
+
+### Frontend (React + Vite)
+- **Entry Point**: [frontend/src/main.jsx](mdc:frontend/src/main.jsx) - React app initialization
+- **Root Component**: [frontend/src/App.jsx](mdc:frontend/src/App.jsx) - Main application component
+- **Dependencies**: [frontend/package.json](mdc:frontend/package.json) - Node.js packages
+- **Styling**: Uses TailwindCSS with forms plugin
+
+### Infrastructure
+- **Docker Compose**: [docker-compose.yml](mdc:docker-compose.yml) - Multi-service orchestration
+- **Database**: PostgreSQL with initialization scripts in [init.sql/](mdc:init.sql)
+- **Caching**: Redis for sessions and background task queuing
+- **Background Tasks**: Celery workers and beat scheduler
+
+## Development Workflow
+
+### Local Development
+1. Use Docker Compose profiles:
+   - Development: `docker-compose --profile dev up -d`
+   - Production: `docker-compose --profile prod up -d`
+
+2. Frontend runs on port 5173 (dev) or 80 (prod)
+3. Backend runs on port 8000
+4. Database on port 5432
+5. Redis on port 6379
+
+### Key Patterns
+- **Application Factory**: Flask app uses factory pattern for configuration
+- **Blueprint Registration**: Routes organized as blueprints with URL prefixes
+- **Model Inheritance**: All models extend BaseModel for common functionality
+- **Environment Configuration**: Config classes for dev/prod/test environments
+- **Health Checks**: Both backend and frontend include health check endpoints

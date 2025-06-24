@@ -3,3 +3,107 @@ description:
 globs:
 alwaysApply: false
 ---
+# Coding Standards & Best Practices
+
+## Python Backend Standards
+
+### Model Design
+- All models MUST inherit from BaseModel in [backend/models/base_models.py](mdc:backend/models/base_models.py)
+- Use consistent naming: `created_at`, `updated_at`, `is_active` fields
+- Implement `to_dict()` method for JSON serialization
+- Use `save()` and `delete()` methods from BaseModel
+
+### Route Organization
+- Group related routes in blueprints (api, auth, webhooks)
+- Use RESTful URL patterns: `/api/resource` for collections, `/api/resource/<id>` for items
+- Implement pagination for list endpoints with `page` and `per_page` parameters
+- Return consistent JSON responses with proper HTTP status codes
+- Handle errors gracefully with descriptive messages
+
+### Configuration Management
+- Environment variables defined in [backend/config.py](mdc:backend/config.py)
+- Use config classes for different environments (dev/prod/test)
+- Never hardcode secrets - use environment variables
+- Default values should be development-friendly
+
+### Database Patterns
+- Use Flask-SQLAlchemy ORM consistently
+- Implement soft deletes with `is_active` flags
+- Use proper foreign key relationships
+- Add database indexes for frequently queried fields
+
+## Frontend Standards
+
+### React Patterns
+- Use functional components with hooks (as shown in [frontend/src/App.jsx](mdc:frontend/src/App.jsx))
+- Organize components in logical directory structure
+- Use React Router for navigation
+- Implement proper error boundaries
+
+### Styling
+- Use TailwindCSS for styling (configured in [frontend/package.json](mdc:frontend/package.json))
+- Use @tailwindcss/forms plugin for form elements
+- Maintain consistent spacing and typography
+- Implement responsive design patterns
+
+### API Integration
+- Use Axios for HTTP requests
+- Implement proper error handling for API calls
+- Use React Hook Form for form management
+- Implement loading states and error messages
+
+## Docker & DevOps
+
+### Container Standards
+- Use Alpine Linux images where possible for smaller footprint
+- Implement health checks for all services
+- Use multi-stage builds for production optimization
+- Mount volumes appropriately for development
+
+### Environment Management
+- Use Docker Compose profiles for different environments
+- Define environment variables in docker-compose.yml
+- Use proper service dependencies and health checks
+- Implement graceful service restart policies
+
+## Security Practices
+
+### Authentication & Authorization
+- Use Redis for session storage
+- Implement proper OAuth flows for Slack integration
+- Validate webhook signatures for security
+- Use environment variables for API keys and secrets
+
+### Data Protection
+- Sanitize all user inputs
+- Use parameterized queries to prevent SQL injection
+- Implement rate limiting for API endpoints
+- Log security events appropriately
+
+## Testing Standards
+
+### Backend Testing
+- Write unit tests for models and utilities
+- Test API endpoints with proper mocking
+- Use TestingConfig with in-memory database
+- Test error conditions and edge cases
+
+### Frontend Testing
+- Test React components with React Testing Library
+- Mock API calls in component tests
+- Test user interactions and form submissions
+- Maintain good test coverage
+
+## Performance Guidelines
+
+### Backend Performance
+- Use database indexing appropriately
+- Implement caching with Redis
+- Use background tasks with Celery for heavy operations
+- Optimize database queries to avoid N+1 problems
+
+### Frontend Performance
+- Use code splitting and lazy loading
+- Optimize bundle size with tree shaking
+- Implement proper image optimization
+- Use memoization for expensive computations

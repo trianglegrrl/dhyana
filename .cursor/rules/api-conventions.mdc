@@ -3,3 +3,241 @@ description:
 globs:
 alwaysApply: false
 ---
+# API Design Conventions
+
+## RESTful API Standards
+
+### URL Structure
+Follow the patterns established in [backend/routes/api.py](mdc:backend/routes/api.py):
+
+```
+GET    /api/resource          # List resources (with pagination)
+GET    /api/resource/<id>     # Get single resource
+POST   /api/resource          # Create new resource
+PUT    /api/resource/<id>     # Update existing resource
+DELETE /api/resource/<id>     # Delete resource (soft delete preferred)
+```
+
+### Resource Naming
+- Use plural nouns for collections: `/api/clients`, `/api/jobs`
+- Use kebab-case for multi-word resources: `/api/job-templates`
+- Nested resources: `/api/clients/<id>/jobs`
+
+### Response Format
+
+#### Success Responses
+```json
+// Single resource
+{
+  "id": 1,
+  "name": "Resource Name",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+
+// Collection with pagination (from api.py pattern)
+{
+  "items": [...],
+  "total": 100,
+  "pages": 10,
+  "current_page": 1,
+  "per_page": 20
+}
+```
+
+#### Error Responses
+```json
+{
+  "error": "Resource not found",
+  "code": "RESOURCE_NOT_FOUND",
+  "details": {
+    "resource_type": "client",
+    "resource_id": "123"
+  }
+}
+```
+
+### HTTP Status Codes
+- **200 OK**: Successful GET, PUT
+- **201 Created**: Successful POST
+- **204 No Content**: Successful DELETE
+- **400 Bad Request**: Invalid input data
+- **401 Unauthorized**: Authentication required
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **422 Unprocessable Entity**: Validation errors
+- **500 Internal Server Error**: Server errors
+
+## Blueprint Organization
+
+### API Blueprint Structure
+Based on [backend/routes/api.py](mdc:backend/routes/api.py):
+
+```python
+from flask import Blueprint, request, jsonify
+
+api_bp = Blueprint('api', __name__)
+
+# Group related endpoints
+@api_bp.route('/slack/teams', methods=['GET'])
+@api_bp.route('/slack/teams/<team_id>', methods=['GET'])
+@api_bp.route('/slack/teams/<team_id>/users', methods=['GET'])
+
+@api_bp.route('/jobber/clients', methods=['GET', 'POST'])
+@api_bp.route('/jobber/clients/<client_id>', methods=['GET', 'PUT', 'DELETE'])
+```
+
+### Blueprint Registration
+In [backend/app.py](mdc:backend/app.py):
+```python
+app.register_blueprint(api_bp, url_prefix='/api')
+app.register_blueprint(webhooks_bp, url_prefix='/webhooks')
+app.register_blueprint(auth_bp, url_prefix='/auth')
+```
+
+## Pagination Standards
+
+### Query Parameters
+- `page`: Page number (default: 1)
+- `per_page`: Items per page (default: 20, max: 100)
+- `sort`: Sort field (default: 'created_at')
+- `order`: Sort direction ('asc' or 'desc', default: 'desc')
+
+### Implementation Pattern
+```python
+@api_bp.route('/resource', methods=['GET'])
+def get_resources():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+
+    resources = Resource.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+
+    return jsonify({
+        'items': [resource.to_dict() for resource in resources.items],
+        'total': resources.total,
+        'pages': resources.pages,
+        'current_page': resources.page
+    })
+```
+
+## Filtering and Search
+
+### Query Parameters
+- Filter by field: `?status=active&type=premium`
+- Search: `?search=term`
+- Date ranges: `?created_after=2024-01-01&created_before=2024-12-31`
+
+### Implementation
+```python
+query = Resource.query
+
+# Apply filters
+if status := request.args.get('status'):
+    query = query.filter_by(status=status)
+
+if search := request.args.get('search'):
+    query = query.filter(Resource.name.ilike(f'%{search}%'))
+
+# Apply pagination
+resources = query.paginate(page=page, per_page=per_page)
+```
+
+## Authentication & Authorization
+
+### Session-Based Auth
+Using Redis sessions as configured in [backend/config.py](mdc:backend/config.py):
+
+```python
+from flask import session
+
+@api_bp.route('/protected-endpoint')
+def protected_endpoint():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Authentication required'}), 401
+
+    # Proceed with authenticated user
+    user_id = session['user_id']
+```
+
+### Webhook Authentication
+For Slack/Jobber webhooks in [backend/routes/webhooks.py](mdc:backend/routes/webhooks.py):
+
+```python
+import hmac
+import hashlib
+
+def verify_slack_signature(request_body, timestamp, signature, secret):
+    """Verify Slack webhook signature"""
+    basestring = f'v0:{timestamp}:{request_body}'
+    expected_signature = 'v0=' + hmac.new(
+        secret.encode(), basestring.encode(), hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected_signature, signature)
+```
+
+## Data Validation
+
+### Input Validation
+```python
+from marshmallow import Schema, fields, validate
+
+class ClientSchema(Schema):
+    company_name = fields.Str(required=True, validate=validate.Length(min=1, max=100))
+    email = fields.Email(required=True)
+    phone = fields.Str(validate=validate.Regexp(r'^\+?[\d\s\-\(\)]+$'))
+
+@api_bp.route('/clients', methods=['POST'])
+def create_client():
+    schema = ClientSchema()
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify({'error': 'Validation failed', 'details': err.messages}), 422
+```
+
+## Error Handling
+
+### Global Error Handlers
+Register in [backend/app.py](mdc:backend/app.py):
+
+```python
+@app.errorhandler(404)
+def not_found(error):
+    return jsonify({'error': 'Resource not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'error': 'Internal server error'}), 500
+```
+
+### Route-Level Error Handling
+```python
+@api_bp.route('/resource/<id>')
+def get_resource(id):
+    try:
+        resource = Resource.query.filter_by(id=id).first()
+        if not resource:
+            return jsonify({'error': 'Resource not found'}), 404
+        return jsonify(resource.to_dict())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+```
+
+## API Documentation
+
+### OpenAPI/Swagger
+Consider adding Flask-RESTX or similar for automatic API documentation:
+
+```python
+from flask_restx import Api, Resource as ApiResource, fields
+
+api = Api(app, doc='/docs/')
+
+client_model = api.model('Client', {
+    'id': fields.Integer(required=True),
+    'company_name': fields.String(required=True),
+    'email': fields.String(required=True)
+})
+```

@@ -3,3 +3,135 @@ description:
 globs:
 alwaysApply: false
 ---
+# Development Workflow Guide
+
+## Environment Setup
+
+### Prerequisites
+- Docker and Docker Compose installed
+- Node.js 18+ (for local frontend development)
+- Python 3.11+ (for local backend development)
+
+### Quick Start
+1. Clone the repository
+2. Copy environment variables: `cp .env.example .env`
+3. Start development environment: `docker-compose --profile dev up -d`
+4. Access services:
+   - Frontend: http://localhost:5173
+   - Backend: http://localhost:8000
+   - Database: localhost:5432
+
+## Service Architecture
+
+### Development Services
+- **postgres**: Database service with persistent volume
+- **redis**: Session store and task queue
+- **backend**: Flask API server with hot reload
+- **frontend-dev**: React development server with HMR
+- **celery-worker**: Background task processor
+- **celery-beat**: Scheduled task runner
+
+### Production Services
+- **frontend**: Nginx-served React build
+- Use `docker-compose --profile prod up -d` for production
+
+## Local Development
+
+### Backend Development
+- Flask app in [backend/app.py](mdc:backend/app.py) uses application factory pattern
+- Configuration loaded from [backend/config.py](mdc:backend/config.py)
+- Models auto-reload in development mode
+- API endpoints accessible at http://localhost:8000/api
+
+### Frontend Development
+- React app configured with Vite in [frontend/vite.config.js](mdc:frontend/vite.config.js)
+- Hot Module Replacement (HMR) enabled
+- TailwindCSS for styling
+- Proxy API requests to backend
+
+### Database Management
+- PostgreSQL with initialization scripts in [init.sql/](mdc:init.sql)
+- Use Flask-Migrate for schema changes
+- Models defined with SQLAlchemy in [backend/models/](mdc:backend/models)
+
+## Common Tasks
+
+### Adding New API Endpoints
+1. Define route in appropriate blueprint ([backend/routes/](mdc:backend/routes))
+2. Follow RESTful conventions
+3. Add error handling and validation
+4. Update tests
+
+### Adding New React Components
+1. Create component in [frontend/src/](mdc:frontend/src)
+2. Use functional components with hooks
+3. Apply TailwindCSS classes for styling
+4. Add to routing if needed
+
+### Database Schema Changes
+1. Update models in [backend/models/](mdc:backend/models)
+2. Generate migration: `flask db migrate -m "description"`
+3. Apply migration: `flask db upgrade`
+4. Test in development environment
+
+### Environment Variables
+- Backend config in [backend/config.py](mdc:backend/config.py)
+- Docker environment in [docker-compose.yml](mdc:docker-compose.yml)
+- Never commit secrets to version control
+- Use `.env` files for local development
+
+## Testing
+
+### Backend Testing
+- Run tests: `pytest backend/tests/`
+- Use TestingConfig with in-memory database
+- Mock external API calls
+- Test models, routes, and utilities
+
+### Frontend Testing
+- Run tests: `npm test` in frontend directory
+- Use Jest and React Testing Library
+- Test components and user interactions
+- Mock API responses
+
+## Debugging
+
+### Backend Debugging
+- Flask debug mode enabled in development
+- Logs accessible via `docker-compose logs backend`
+- Use Python debugger (pdb) for breakpoints
+- Health check endpoint: http://localhost:8000/health
+
+### Frontend Debugging
+- React Developer Tools in browser
+- Console logs and network tab
+- Vite dev server provides detailed error messages
+- HMR updates show compilation errors
+
+## Deployment
+
+### Production Build
+1. Build images: `docker-compose build`
+2. Run production: `docker-compose --profile prod up -d`
+3. Check health endpoints
+4. Monitor logs: `docker-compose logs -f`
+
+### Environment Configuration
+- Production config in ProductionConfig class
+- Use environment variables for secrets
+- Enable SSL/TLS in production
+- Configure proper CORS origins
+
+## Troubleshooting
+
+### Common Issues
+- **Port conflicts**: Check if ports 5173, 8000, 5432, 6379 are available
+- **Docker issues**: Run `docker-compose down` and `docker-compose up -d`
+- **Database connection**: Verify DATABASE_URL in environment
+- **Redis connection**: Check REDIS_URL configuration
+
+### Performance Monitoring
+- Use Flask-APM for backend monitoring
+- Monitor database query performance
+- Check Redis memory usage
+- Use browser dev tools for frontend performance

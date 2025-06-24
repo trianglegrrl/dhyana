@@ -3,3 +3,127 @@ description:
 globs:
 alwaysApply: false
 ---
+# Dhyana Test - Cursor Rules Overview
+
+This directory contains comprehensive development rules and guidelines for the Dhyana Test project, a full-stack Slack-Jobber integration application.
+
+## Rule Files
+
+### 📁 [Project Structure](mdc:.cursor/rules/project-structure.mdc)
+- Complete project architecture overview
+- File organization and directory structure
+- Service relationships and dependencies
+- Key entry points and configuration files
+
+### 🛠️ [Coding Standards](mdc:.cursor/rules/coding-standards.mdc)
+- Python backend standards and patterns
+- React frontend conventions
+- Docker and DevOps best practices
+- Security guidelines and testing standards
+
+### 🔄 [Development Workflow](mdc:.cursor/rules/development-workflow.mdc)
+- Environment setup and prerequisites
+- Local development processes
+- Common development tasks
+- Debugging and troubleshooting guide
+
+### 🌐 [API Conventions](mdc:.cursor/rules/api-conventions.mdc)
+- RESTful API design patterns
+- Response formats and error handling
+- Authentication and authorization
+- Pagination and filtering standards
+
+## Quick Reference
+
+### Key Files
+- Main backend app: [backend/app.py](mdc:backend/app.py)
+- Configuration: [backend/config.py](mdc:backend/config.py)
+- Frontend entry: [frontend/src/App.jsx](mdc:frontend/src/App.jsx)
+- Docker orchestration: [docker-compose.yml](mdc:docker-compose.yml)
+
+### Development Commands
+```bash
+# Start development environment
+docker-compose --profile dev up -d
+
+# Start production environment
+docker-compose --profile prod up -d
+
+# View logs
+docker-compose logs -f [service-name]
+
+# Stop all services
+docker-compose down
+```
+
+### Service Ports
+- Frontend (dev): http://localhost:5173
+- Backend API: http://localhost:8000
+- Database: localhost:5432
+- Redis: localhost:6379
+
+## Architecture Overview
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   React (Vite)  │    │  Flask Backend  │    │   PostgreSQL    │
+│   Port: 5173    │────│   Port: 8000    │────│   Port: 5432    │
+│   TailwindCSS   │    │   SQLAlchemy    │    │   Database      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │
+                       ┌─────────────────┐
+                       │      Redis      │
+                       │   Port: 6379    │
+                       │ Sessions/Tasks  │
+                       └─────────────────┘
+                                │
+                    ┌──────────────────────────┐
+                    │    Celery Workers        │
+                    │  Background Processing   │
+                    └──────────────────────────┘
+```
+
+## Getting Started
+
+1. **First Time Setup**
+   - Follow the [Development Workflow](mdc:.cursor/rules/development-workflow.mdc) guide
+   - Review [Coding Standards](mdc:.cursor/rules/coding-standards.mdc) before making changes
+   - Understand the [Project Structure](mdc:.cursor/rules/project-structure.mdc)
+
+2. **API Development**
+   - Follow [API Conventions](mdc:.cursor/rules/api-conventions.mdc) for consistent design
+   - Use existing patterns from [backend/routes/api.py](mdc:backend/routes/api.py)
+   - Implement proper error handling and validation
+
+3. **Frontend Development**
+   - Use React functional components with hooks
+   - Apply TailwindCSS for styling
+   - Follow the patterns in [frontend/src/App.jsx](mdc:frontend/src/App.jsx)
+
+## Integration Points
+
+### Slack Integration
+- OAuth authentication flows
+- Webhook handling for real-time events
+- Slack SDK for API interactions
+
+### Jobber Integration
+- API authentication and data sync
+- Client, job, and invoice management
+- Background processing for data updates
+
+### Background Processing
+- Celery workers for async tasks
+- Redis as message broker
+- Scheduled tasks with Celery Beat
+
+## Contributing
+
+When making changes:
+1. Follow the established patterns in existing code
+2. Update tests for new functionality
+3. Ensure Docker containers build successfully
+4. Test in both development and production profiles
+5. Update documentation as needed
+
+These rules are designed to maintain consistency, improve code quality, and accelerate development workflows across the team.
